@@ -72,5 +72,4 @@ void main() {
     vec3 finalColor = mainColor + color * (ambient + diffuse);
 
     FragColor = vec4(finalColor, texColor.a);
-
 }
