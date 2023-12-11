@@ -40,6 +40,7 @@ int SCREEN_HEIGHT = 720;
 //Variables
 float prevTime;
 ew::Vec3 bgColor = ew::Vec3(0.0f);
+//Variables for Imgui
 
 
 ew::Camera camera;
@@ -101,7 +102,8 @@ int main() {
 	ew::Transform earthTransform;
 	earthTransform.position = ew::Vec3(0.0f, 0.0f, 0.0f);
 	earthTransform.rotation = ew::Vec3(0.0f, 0.0f, 0.0f);
-	float earthAxialTilt = 180.0f + 23.4f;
+	float earthAxialTiltOffset = 23.4f;
+	float earthAxialTilt = 180.0f + earthAxialTiltOffset;
 	float earthRotY = 0.0f;
 	float earthSpinSpeed = 10.0f;
 
@@ -158,6 +160,7 @@ int main() {
 
 	ew::Shader starShader("assets/stars.vert", "assets/stars.frag");
 	unsigned int starTexture = ew::loadTexture("assets/starmap16k.jpg", GL_REPEAT, GL_LINEAR);
+	float starTransparency = 1.0f;
 
 	ew::Mesh starMesh(ew::createSphere(18000.0f, 640));
 	ew::Transform starTransform;
@@ -179,7 +182,8 @@ int main() {
 		cameraController.Move(window, &camera, deltaTime);
 
 		//RENDER
-		glClearColor(bgColor.x, bgColor.y,bgColor.z,1.0f);
+
+		glClearColor(bgColor.x, bgColor.y,bgColor.z, starTransparency);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glEnable(GL_BLEND);
 
@@ -187,7 +191,7 @@ int main() {
 
 		earthRotY += earthSpinSpeed * deltaTime;
 		float scale = (cos(time/5.0f) + 1.0f) / 2.0f;
-		//scale = 1;
+		scale = 1;
 		earthMesh.load(ew::createEarth(40075.0f * Constants::scaleRatio, 20000.0f * Constants::scaleRatio, 6357.0f * Constants::scaleRatio, 50, scale, 0.0f));
 
 		earthTransform.rotation = ew::Vec3(
@@ -328,14 +332,45 @@ int main() {
 				ImGui::DragFloat("Far Plane", &camera.farPlane, 0.1f, 0.0f);
 				ImGui::DragFloat("Move Speed", &cameraController.moveSpeed, 0.1f);
 				ImGui::DragFloat("Sprint Speed", &cameraController.sprintMoveSpeed, 0.1f);
-				if (ImGui::Button("Reset")) {
+				ImGui::ColorEdit3("BG color", &bgColor.x);
+				if (ImGui::Button("Reset")) {  //Consider addind to this?
 					resetCamera(camera, cameraController);
 				}
 			}
-			ImGui::ColorEdit3("BG color", &bgColor.x);
+			if (ImGui::CollapsingHeader("Sun")) {
+				ImGui::DragFloat3("Sun Scale", &sunSphereTransform.scale.x, 0.1f);
+				ImGui::DragFloat("Sun Distance", &sunDistance, 0.1f); //I think this could be affecting the geocentric orbit, unsure
+				ImGui::ColorEdit3("Surface Color", &sunLight.color.x);
+				ImGui::ColorEdit3("Light Color", &colorOnEarth.x);
+				ImGui::DragFloat("Intensity", &lightintensity);
+			}
+			if (ImGui::CollapsingHeader("Earth")) {
+				ImGui::DragFloat3("Scale", &earthTransform.scale.x, 0.1f);
 
-			ImGui::SliderFloat("Spin Speed", &earthSpinSpeed, 0.0f, 360.0f);
+				//ImGui::DragFloat("Frenel", &missingRef, 0.1f); //I dont know how to set this up
+				ImGui::SliderFloat("Specular", &material.specular, 0.0f, 1.0f); //not clamped
+				ImGui::SliderFloat("Ambient", &material.ambientK, 0.0f, 1.0f); //not clamped
+				ImGui::SliderFloat("Diffuse", &material.diffuseK, 0.0f, 1.0f); //not clamped
+				ImGui::DragFloat("Shininess", &material.shininess, 0.0f, 1.0f); //not clamped
 
+				ImGui::SliderFloat("Earth Spin Speed", &earthSpinSpeed, 0.0f, 360.0f);
+				//ImGui::DragFloat("Tilt", &earthAxialTiltOffset, 0.1f); //This seems to not work
+				//ImGui::DragFloat("Axial Rotation Speed", &missingRef, 0.1f); //I dont know how to set this up
+			}
+			if (ImGui::CollapsingHeader("Clouds")) {
+				//ImGui::DragFloat("Speed", &material.specular, 0.1f); //I dont know how to set this up
+				ImGui::DragFloat3("Transform", &cloudTransform.scale.x, 0.1f); //X Y Z is individual, could be combined into one number but ehh ur call
+				//ImGui::DragFloat("Opacity", &material.diffuseK, 0.1f); //I dont know how to set this up
+			}
+			if (ImGui::CollapsingHeader("Moon")) {
+				ImGui::DragFloat3("Moon Scale", &moonTransform.scale.x, 0.1f);
+				ImGui::DragFloat("Moon Distance", &moonDistance, 0.1f); //I think this could be affecting the geocentric orbit, unsure
+				//ImGui::DragFloat("Brightness", &missingRef, 0.1f); //I dont know how to set this up
+				//ImGui::DragFloat("Moon Spin Speed", &missingRef, 0.1f); //I dont know how to set this up
+				//ImGui::DragFloat("Facing Direction", &missingRef, 0.1f); //I dont know how to set this up
+			}
+			
+			//ImGui::SliderFloat("Star Transparency", &starTransparency, 0.0f, 1.0f); //This seems to not work
 
 			ImGui::End();
 			
