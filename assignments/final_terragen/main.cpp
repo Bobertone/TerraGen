@@ -94,6 +94,8 @@ int main() {
 	ew::Shader earthShader("assets/defaultLit.vert", "assets/defaultLit.frag");
 	unsigned int earthTexture = ew::loadTexture("assets/world5k.png", GL_REPEAT, GL_LINEAR);
 	unsigned int nightTexture = ew::loadTexture("assets/worldN.jpg", GL_REPEAT, GL_LINEAR);
+	unsigned int heightTexture = ew::loadTexture("assets/Topo.png", GL_REPEAT, GL_LINEAR);
+
 
 	ew::Mesh earthMesh(ew::createSphere(6357.0f * Constants::scaleRatio, 640));
 	ew::Transform earthTransform;
@@ -184,7 +186,7 @@ int main() {
 
 		earthRotY += earthSpinSpeed * deltaTime;
 		float scale = (cos(time) + 1.0f) / 2.0f;
-		//scale = 1;
+		scale = 0;
 		earthMesh.load(ew::createEarth(40075.0f * Constants::scaleRatio, 20000.0f * Constants::scaleRatio, 6357.0f * Constants::scaleRatio, 64, scale, 0.0f));
 
 		earthTransform.rotation = ew::Vec3(
@@ -198,10 +200,15 @@ int main() {
 		glBindTexture(GL_TEXTURE_2D, earthTexture);
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, nightTexture);
+		glActiveTexture(GL_TEXTURE4);
+		glBindTexture(GL_TEXTURE_2D, heightTexture);
 		earthShader.setInt("_Texture", 0);
 		earthShader.setInt("_TextureNight", 1);
 
 		earthShader.setMat4("_ViewProjection", camera.ProjectionMatrix() * camera.ViewMatrix());
+
+		earthShader.setInt("HeightMap", 4);
+		earthShader.setFloat("scale", 0.1f);
 
 		earthShader.setFloat("ambientK", material.ambientK);
 		earthShader.setFloat("diffuseK", material.diffuseK);
