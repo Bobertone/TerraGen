@@ -107,7 +107,7 @@ int main() {
 
 	//Add height here
 	//earthMesh.load(ew::createEarth(40075.0f * Constants::scaleRatio, 20000.0f * Constants::scaleRatio, 6357.0f * Constants::scaleRatio, 640, 1.0f, 0.0f));
-	earthMesh.load(ew::createEarth(40075.0f * Constants::scaleRatio, 20000.0f * Constants::scaleRatio, 6357.0f * Constants::scaleRatio, 2000, 1.0f, 0.0f));
+	earthMesh.load(ew::createEarth(40075.0f * Constants::scaleRatio, 20000.0f * Constants::scaleRatio, 6357.0f * Constants::scaleRatio, 50, 1.0f, 0.0f));
 
 	//-------------------Clouds------------------------
 
@@ -186,9 +186,9 @@ int main() {
 		//--------------------Earth------------------
 
 		earthRotY += earthSpinSpeed * deltaTime;
-		float scale = (cos(time) + 1.0f) / 2.0f;
-		scale = 1;
-		//earthMesh.load(ew::createEarth(40075.0f * Constants::scaleRatio, 20000.0f * Constants::scaleRatio, 6357.0f * Constants::scaleRatio, 250, scale, 0.0f));
+		float scale = (cos(time/5.0f) + 1.0f) / 2.0f;
+		//scale = 1;
+		earthMesh.load(ew::createEarth(40075.0f * Constants::scaleRatio, 20000.0f * Constants::scaleRatio, 6357.0f * Constants::scaleRatio, 50, scale, 0.0f));
 
 		earthTransform.rotation = ew::Vec3(
 			lerp(180.0f, earthAxialTilt, scale),
@@ -209,7 +209,8 @@ int main() {
 		earthShader.setMat4("_ViewProjection", camera.ProjectionMatrix() * camera.ViewMatrix());
 
 		earthShader.setInt("HeightMap", 4);
-		earthShader.setFloat("scale", 0.01f);
+		earthShader.setFloat("scale", 0.1f);
+		earthShader.setFloat("transition", scale);
 
 		earthShader.setFloat("ambientK", material.ambientK);
 		earthShader.setFloat("diffuseK", material.diffuseK);
