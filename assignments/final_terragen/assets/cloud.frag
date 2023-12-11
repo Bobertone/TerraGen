@@ -21,6 +21,7 @@ uniform float ambientK;
 uniform float diffuseK;
 uniform float specularK;
 uniform float shininess;
+uniform float opacity;
 
 uniform sampler2D _Texture;
 
@@ -66,6 +67,6 @@ void main() {
 
     vec3 finalColor = mainColor + color * (ambient + diffuse);
 
-    FragColor = vec4(finalColor, texColor.a / 3.0f);
+    FragColor = vec4(finalColor, texColor.a * opacity);
 
 }

@@ -103,13 +103,17 @@ int main() {
 	earthTransform.position = ew::Vec3(0.0f, 0.0f, 0.0f);
 	earthTransform.rotation = ew::Vec3(0.0f, 0.0f, 0.0f);
 	float earthAxialTiltOffset = 23.4f;
-	float earthAxialTilt = 180.0f + earthAxialTiltOffset;
+	float earthAxialTilt = 180.0f;
 	float earthRotY = 0.0f;
-	float earthSpinSpeed = 10.0f;
-
-	//Add height here
+	float earthSpinSpeed = 1.0f;
+	float fresnelScale = 3.0f;
+	float rotationalSpeed = 1.0f;
+	float heightmapScale = 0.01f;
+	float subdivisions = 2000;
+	float targetSubdivisions = subdivisions;
+	
 	//earthMesh.load(ew::createEarth(40075.0f * Constants::scaleRatio, 20000.0f * Constants::scaleRatio, 6357.0f * Constants::scaleRatio, 640, 1.0f, 0.0f));
-	earthMesh.load(ew::createEarth(40075.0f * Constants::scaleRatio, 20000.0f * Constants::scaleRatio, 6357.0f * Constants::scaleRatio, 50, 1.0f, 0.0f));
+	earthMesh.load(ew::createEarth(40075.0f * Constants::scaleRatio, 20000.0f * Constants::scaleRatio, 6357.0f * Constants::scaleRatio, targetSubdivisions, 1.0f, 0.0f));
 
 	//-------------------Clouds------------------------
 
@@ -120,6 +124,10 @@ int main() {
 	ew::Transform cloudTransform;
 	cloudTransform.position = ew::Vec3(0.0f, 0.0f, 0.0f);
 	cloudTransform.rotation = ew::Vec3(0.0f, 0.0f, 0.0f);
+
+	float cloudRotationSpeed = 0.8f;
+	float cloudOpacity = 0.3f;
+	float cloudScale = 1.0f;
 
 	//-------------------Moon----------------------
 
@@ -141,6 +149,9 @@ int main() {
 	moonTransform.position = ew::Vec3(moonDistance, 0.0f, 0.0f);
 	moonTransform.rotation = ew::Vec3(0.0f, 0.0f, 0.0f);
 
+	float facingSpeed = 12.4f;
+	float moonRotationSpeed = 12.4f;
+
 	//----------------------Sun------------------------
 
 	ew::Shader emissiveShader("assets/emissive.vert", "assets/emissive.frag");
@@ -153,8 +164,7 @@ int main() {
 	sunLight.position = ew::Vec3(sunDistance, 0.0f, 0.0f);
 	sunLight.color = ew::Vec3(253.0f / 255.0f, 244.0f / 255.0f, 191.0f / 255.0f);
 
-	float lightintensity = 1.0f;
-	ew::Vec3 colorOnEarth = ew::Vec3(lightintensity, lightintensity, lightintensity);
+	ew::Vec3 colorOnEarth = ew::Vec3(1.0f);
 
 	//---------------------Stars---------------------
 
@@ -192,11 +202,16 @@ int main() {
 		earthRotY += earthSpinSpeed * deltaTime;
 		float scale = (cos(time/5.0f) + 1.0f) / 2.0f;
 		scale = 1;
-		earthMesh.load(ew::createEarth(40075.0f * Constants::scaleRatio, 20000.0f * Constants::scaleRatio, 6357.0f * Constants::scaleRatio, 50, scale, 0.0f));
+		
+		if (targetSubdivisions != subdivisions) 
+		{
+			targetSubdivisions = subdivisions;
+			earthMesh.load(ew::createEarth(40075.0f * Constants::scaleRatio, 20000.0f * Constants::scaleRatio, 6357.0f * Constants::scaleRatio, targetSubdivisions, 1.0f, 0.0f));
+		}
 
 		earthTransform.rotation = ew::Vec3(
-			lerp(180.0f, earthAxialTilt, scale),
-			lerp(earthRotY / 365.25f + 90.f, earthRotY, scale),
+			lerp(180.0f, earthAxialTilt + earthAxialTiltOffset, scale),
+			lerp(earthRotY / 365.25f + 90.f, earthRotY * -rotationalSpeed, scale),
 			lerp(180.0f, 0.0f, scale));
 
 		earthShader.use();
@@ -212,14 +227,15 @@ int main() {
 
 		earthShader.setMat4("_ViewProjection", camera.ProjectionMatrix() * camera.ViewMatrix());
 
-		earthShader.setInt("HeightMap", 4);
-		earthShader.setFloat("scale", 0.1f);
+		earthShader.setInt("HeightMap", 5);
+		earthShader.setFloat("scale", heightmapScale);
 		earthShader.setFloat("transition", scale);
 
 		earthShader.setFloat("ambientK", material.ambientK);
 		earthShader.setFloat("diffuseK", material.diffuseK);
 		earthShader.setFloat("specularK", material.specular);
 		earthShader.setFloat("shininess", material.shininess);
+		earthShader.setFloat("fresnelScale", fresnelScale);
 		earthShader.setVec3("_ViewPosition", camera.position);
 		earthShader.setInt("numLights", 1);
 		earthShader.setInt("useBlinnPhong", true);
@@ -232,7 +248,7 @@ int main() {
 
 		//-----------------Clouds----------------------
 
-		cloudTransform.rotation = ew::Vec3(earthAxialTilt, earthRotY / 1.2f, 0.0f);
+		cloudTransform.rotation = ew::Vec3(earthAxialTilt + earthAxialTiltOffset, earthRotY * cloudRotationSpeed, 0.0f);
 
 		sphereShader.use();
 		glActiveTexture(GL_TEXTURE2);
@@ -249,6 +265,8 @@ int main() {
 		sphereShader.setVec3("_ViewPosition", camera.position);
 		sphereShader.setInt("numLights", 1);
 		sphereShader.setInt("useBlinnPhong", true);
+		sphereShader.setFloat("opacity", cloudOpacity);
+		sphereShader.setFloat("cloudScale", cloudScale);
 
 		sphereShader.setVec3("_Lights[0].position", sunLight.position);
 		sphereShader.setVec3("_Lights[0].color", colorOnEarth);
@@ -261,8 +279,8 @@ int main() {
 
 		//-----------------------Moon-------------------------
 
-		moonTransform.position = moveOnUnitCircle(spaceRotation * 12.4f, moonDistance);
-		moonTransform.rotation = ew::Vec3(0.0f, -spaceRotation * 12.4f, 0.0f);
+		moonTransform.position = moveOnUnitCircle(spaceRotation * moonRotationSpeed, moonDistance);
+		moonTransform.rotation = ew::Vec3(0.0f, -spaceRotation * facingSpeed, 0.0f);
 
 		moonShader.use();
 		glActiveTexture(GL_TEXTURE4);
@@ -292,6 +310,7 @@ int main() {
 		glActiveTexture(GL_TEXTURE3);
 		glBindTexture(GL_TEXTURE_2D, starTexture);
 		starShader.setInt("_Texture", 3);
+		starShader.setFloat("opacity", starTransparency);
 
 		starShader.setMat4("_Model", starTransform.getModelMatrix());
 		starShader.setMat4("_ViewProjection", camera.ProjectionMatrix() * camera.ViewMatrix());
@@ -318,7 +337,8 @@ int main() {
 			ImGui::NewFrame();
 
 			ImGui::Begin("Settings");
-			if (ImGui::CollapsingHeader("Camera")) {
+			if (ImGui::CollapsingHeader("Camera")) 
+			{
 				ImGui::DragFloat3("Position", &camera.position.x, 0.1f);
 				ImGui::DragFloat3("Target", &camera.target.x, 0.1f);
 				ImGui::Checkbox("Orthographic", &camera.orthographic);
@@ -333,44 +353,51 @@ int main() {
 				ImGui::DragFloat("Move Speed", &cameraController.moveSpeed, 0.1f);
 				ImGui::DragFloat("Sprint Speed", &cameraController.sprintMoveSpeed, 0.1f);
 				ImGui::ColorEdit3("BG color", &bgColor.x);
-				if (ImGui::Button("Reset")) {  //Consider addind to this?
+				if (ImGui::Button("Reset")) {  //Consider addind to this
 					resetCamera(camera, cameraController);
 				}
 			}
-			if (ImGui::CollapsingHeader("Sun")) {
+			if (ImGui::CollapsingHeader("Sun")) 
+			{
 				ImGui::DragFloat3("Sun Scale", &sunSphereTransform.scale.x, 0.1f);
-				ImGui::DragFloat("Sun Distance", &sunDistance, 0.1f); //I think this could be affecting the geocentric orbit, unsure
-				ImGui::ColorEdit3("Surface Color", &sunLight.color.x);
-				ImGui::ColorEdit3("Light Color", &colorOnEarth.x);
-				ImGui::DragFloat("Intensity", &lightintensity);
+				ImGui::DragFloat("Sun Distance", &sunDistance, 100.0f);
+				ImGui::ColorEdit3("Sun Surface Color", &sunLight.color.x);
+				ImGui::ColorEdit3("Sun Light Color", &colorOnEarth.x);
 			}
-			if (ImGui::CollapsingHeader("Earth")) {
-				ImGui::DragFloat3("Scale", &earthTransform.scale.x, 0.1f);
+			if (ImGui::CollapsingHeader("Earth")) 
+			{
+				ImGui::DragFloat("Earth Heightmap Scale", &heightmapScale, 0.01f);
+				ImGui::DragFloat3("Earth Scale", &earthTransform.scale.x, 0.1f);
+				ImGui::SliderFloat("Earth Subdivisions", &subdivisions, 0.0f, 5000.0f);
 
-				//ImGui::DragFloat("Frenel", &missingRef, 0.1f); //I dont know how to set this up
-				ImGui::SliderFloat("Specular", &material.specular, 0.0f, 1.0f); //not clamped
-				ImGui::SliderFloat("Ambient", &material.ambientK, 0.0f, 1.0f); //not clamped
-				ImGui::SliderFloat("Diffuse", &material.diffuseK, 0.0f, 1.0f); //not clamped
-				ImGui::DragFloat("Shininess", &material.shininess, 0.0f, 1.0f); //not clamped
+				ImGui::SliderFloat("Earth Specular", &material.specular, 0.0f, 3.0f); 
+				ImGui::SliderFloat("Earth Ambient", &material.ambientK, 0.0f, 3.0f); 
+				ImGui::SliderFloat("Earth Diffuse", &material.diffuseK, 0.0f, 3.0f); 
+				ImGui::DragFloat("Earth Shininess", &material.shininess, 0.0f, 3.0f);
+				ImGui::DragFloat("Earth Fresnel", &fresnelScale, 0.1f);
 
-				ImGui::SliderFloat("Earth Spin Speed", &earthSpinSpeed, 0.0f, 360.0f);
-				//ImGui::DragFloat("Tilt", &earthAxialTiltOffset, 0.1f); //This seems to not work
-				//ImGui::DragFloat("Axial Rotation Speed", &missingRef, 0.1f); //I dont know how to set this up
+				ImGui::SliderFloat("Earth Spin Speed", &earthSpinSpeed, -360.0f, 360.0f);
+				ImGui::DragFloat("Earth Tilt", &earthAxialTiltOffset, 0.1f);
+				ImGui::DragFloat("Earth Axial Rotation Speed", &rotationalSpeed, 0.1f);
 			}
 			if (ImGui::CollapsingHeader("Clouds")) {
-				//ImGui::DragFloat("Speed", &material.specular, 0.1f); //I dont know how to set this up
-				ImGui::DragFloat3("Transform", &cloudTransform.scale.x, 0.1f); //X Y Z is individual, could be combined into one number but ehh ur call
-				//ImGui::DragFloat("Opacity", &material.diffuseK, 0.1f); //I dont know how to set this up
+				ImGui::DragFloat3("Clouds Transform", &cloudTransform.scale.x, 0.1f);
+				ImGui::SliderFloat("Clouds Speed", &cloudRotationSpeed, -2.0f, 2.0f);
+				ImGui::SliderFloat("Clouds Opacity", &cloudOpacity, 0.0f, 1.0f);
+				ImGui::SliderFloat("Clouds Scale", &cloudScale, 1.0f, 10.0f);
 			}
 			if (ImGui::CollapsingHeader("Moon")) {
 				ImGui::DragFloat3("Moon Scale", &moonTransform.scale.x, 0.1f);
-				ImGui::DragFloat("Moon Distance", &moonDistance, 0.1f); //I think this could be affecting the geocentric orbit, unsure
-				//ImGui::DragFloat("Brightness", &missingRef, 0.1f); //I dont know how to set this up
-				//ImGui::DragFloat("Moon Spin Speed", &missingRef, 0.1f); //I dont know how to set this up
-				//ImGui::DragFloat("Facing Direction", &missingRef, 0.1f); //I dont know how to set this up
+				ImGui::DragFloat("Moon Distance", &moonDistance, 0.1f);
+				ImGui::SliderFloat("Moon Specular", &moonMaterial.specular, 0.0f, 3.0f);
+				ImGui::SliderFloat("Moon Ambient", &moonMaterial.ambientK, 0.0f, 3.0f);
+				ImGui::SliderFloat("Moon Diffuse", &moonMaterial.diffuseK, 0.0f, 3.0f);
+				ImGui::DragFloat("Moon Shininess", &moonMaterial.shininess, 0.0f, 3.0f);
+				ImGui::DragFloat("Moon Spin Speed", &moonRotationSpeed, 0.1f);
+				ImGui::DragFloat("Facing Direction", &facingSpeed, 0.1f);
 			}
 			
-			//ImGui::SliderFloat("Star Transparency", &starTransparency, 0.0f, 1.0f); //This seems to not work
+			ImGui::SliderFloat("Star Transparency", &starTransparency, 0.0f, 2.0f);
 
 			ImGui::End();
 			
@@ -411,7 +438,7 @@ void resetCamera(ew::Camera& camera, ew::CameraController& cameraController) {
 	camera.target = ew::Vec3(0);
 	camera.fov = 60.0f;
 	camera.orthoHeight = 6.0f;
-	camera.nearPlane = 0.1f;
+	camera.nearPlane = 0.01f;
 	camera.farPlane = 20000.0f;
 	camera.orthographic = false;
 

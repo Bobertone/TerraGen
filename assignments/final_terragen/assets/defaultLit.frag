@@ -21,6 +21,7 @@ uniform float ambientK;
 uniform float diffuseK;
 uniform float specularK;
 uniform float shininess;
+uniform float fresnelScale;
 
 uniform sampler2D _Texture;
 uniform sampler2D _TextureNight;
@@ -62,7 +63,7 @@ void main() {
     mainColor += texColorN.rgb * (0.9f - (ambient + diffuse));
     mainColor += texColor.rgb * specular * (1.0f - texColor.b * specular);
 
-    float fresnel = 3.0f * pow(1.0f - dot(normal, viewDir), 4.0f);
+    float fresnel = fresnelScale * pow(1.0f - dot(normal, viewDir), 4.0f);
     vec3 baseColor = vec3(0.0, 0.1f, 0.5f);
     vec3 envColor = vec3(0.75f);
 
